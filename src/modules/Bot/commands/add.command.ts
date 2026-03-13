@@ -1,0 +1,73 @@
+import { Conversation, ConversationFlavor } from '@grammyjs/conversations';
+import { Context } from 'grammy';
+import { CreateExpenseDto } from 'src/modules/Expenses/domain/dto/createExpense.dto';
+
+type BotContext = Context & ConversationFlavor<Context>;
+
+export async function addConversation(
+  conversation: Conversation<BotContext>,
+  ctx: BotContext,
+) {
+  const expense: CreateExpenseDto = {
+    amount: 0,
+    description: '',
+    category: '',
+    date: new Date().toISOString(),
+    source: 'manual',
+  };
+
+  expense.amount = await askForAmount(conversation, ctx);
+  expense.description = await askForText(conversation, ctx, 'Description:');
+  expense.category = await askForText(conversation, ctx, 'Category:');
+
+  await ctx.reply('✅ Expense recorded. Please confirm:');
+
+  await ctx.reply(
+    `
+    *Expense Details*
+
+    Amount: *${expense.amount} MDL*
+    Description: *${expense.description}*
+    Category: *${expense.category}*
+    Date: *${expense.date}*
+    Source: *${expense.source}*
+    `,
+    { parse_mode: 'Markdown' },
+  );
+
+  // here you would normally call your service
+  // await expensesService.create(expense)
+}
+
+export async function addCommand(ctx: BotContext) {
+  await ctx.conversation.enter('addConversation');
+}
+
+async function askForText(
+  conversation: Conversation<BotContext>,
+  ctx: BotContext,
+  question: string,
+): Promise<string> {
+  await ctx.reply(question);
+
+  const update = await conversation.waitFor('message:text');
+  return update.message.text.trim();
+}
+
+async function askForAmount(
+  conversation: Conversation<BotContext>,
+  ctx: BotContext,
+): Promise<number> {
+  while (true) {
+    await ctx.reply('Amount spent (MDL):');
+
+    const update = await conversation.waitFor('message:text');
+    const amount = Number(update.message.text);
+
+    if (!isNaN(amount) && amount > 0) {
+      return amount;
+    }
+
+    await ctx.reply('⚠️ Please enter a valid positive number.');
+  }
+}
