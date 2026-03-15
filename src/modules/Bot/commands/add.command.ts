@@ -1,8 +1,7 @@
-import { Conversation, ConversationFlavor } from '@grammyjs/conversations';
-import { Context } from 'grammy';
+import { Conversation } from '@grammyjs/conversations';
 import { CreateExpenseDto } from 'src/modules/Expenses/domain/dto/createExpense.dto';
 
-type BotContext = Context & ConversationFlavor<Context>;
+import { BotContext } from '../types/bot.context';
 
 export async function addConversation(
   conversation: Conversation<BotContext>,
@@ -35,8 +34,18 @@ export async function addConversation(
     { parse_mode: 'Markdown' },
   );
 
-  // here you would normally call your service
-  // await expensesService.create(expense)
+  try {
+    const createdExpense = await conversation.external((ctx) =>
+      ctx.expensesService.create(expense),
+    );
+
+    if (createdExpense) {
+      await ctx.reply('Successfully added the expense.');
+    }
+  } catch (e) {
+    await ctx.reply('Something went wrong.');
+    console.error(e);
+  }
 }
 
 export async function addCommand(ctx: BotContext) {

@@ -6,6 +6,7 @@ import { ReturnExpenseDto } from './domain/dto/returnExpense.dto';
 import { ExpensesEntity } from './domain/expenses.entity';
 import { ExpensesMapper } from './domain/expenses.mapper';
 import { IExpensesRepository } from './expenses.repository.interface';
+import { Injectable } from '@nestjs/common';
 
 function getSingleOrError<T>(entityArray: T[], errorMessage: string) {
   const entity = entityArray[0];
@@ -15,6 +16,7 @@ function getSingleOrError<T>(entityArray: T[], errorMessage: string) {
   return entity;
 }
 
+@Injectable()
 export class ExpensesRepository implements IExpensesRepository {
   constructor(private readonly _db: DatabaseService) {}
   async exists(id: string): Promise<boolean> {

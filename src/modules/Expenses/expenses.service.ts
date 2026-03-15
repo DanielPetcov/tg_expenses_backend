@@ -1,11 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { IExpensesRepository } from './expenses.repository.interface';
 import { CreateExpenseDto } from './domain/dto/createExpense.dto';
 import { ReturnExpenseDto } from './domain/dto/returnExpense.dto';
+import { EXPENSES_REPOSITORY } from './expenses.repository.token';
 
 @Injectable()
 export class ExpensesService {
-  constructor(private readonly _repo: IExpensesRepository) {}
+  constructor(
+    @Inject(EXPENSES_REPOSITORY) private readonly _repo: IExpensesRepository,
+  ) {}
 
   async create(dto: CreateExpenseDto): Promise<ReturnExpenseDto> {
     const createdExpense = await this._repo.create(dto);

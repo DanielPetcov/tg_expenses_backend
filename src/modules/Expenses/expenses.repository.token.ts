@@ -1,0 +1,1 @@
+export const EXPENSES_REPOSITORY = Symbol('EXPENSES_REPOSITORY');
