@@ -1,7 +1,8 @@
 import { ExpenseSources } from './expenseSources';
 
-export interface ExpensesEntity {
+export interface ExpenseEntity {
   id: string;
+  userId: string;
   amount: string;
   description: string;
   category: string;

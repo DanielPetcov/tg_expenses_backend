@@ -1,11 +1,10 @@
 import { ExpenseSources } from '../expenseSources';
 
-export interface ReturnExpenseDto {
-  date: string;
-  id: string;
+export interface CreateExpenseRepoDto {
+  userId: string;
   amount: number;
   description: string;
   category: string;
   source: ExpenseSources;
-  createdAt: Date | null;
+  date: string;
 }

@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
 import { DataBaseModule } from '../Database/database.module';
-import { IExpensesRepository } from './expenses.repository.interface';
-import { ExpensesRepository } from './expenses.repository';
+import { ExpensesRepository } from './repositories/expensesRepository/expenses.repository';
 import { ExpensesService } from './expenses.service';
-import { EXPENSES_REPOSITORY } from './expenses.repository.token';
+import { EXPENSES_REPOSITORY } from './repositories/expensesRepository/expenses.repository.token';
+import { USERS_REPOSITORY } from './repositories/usersRepository/users.repository.token';
+import { UsersRepository } from './repositories/usersRepository/users.repository';
 
 @Module({
   imports: [DataBaseModule],
@@ -12,6 +13,10 @@ import { EXPENSES_REPOSITORY } from './expenses.repository.token';
     {
       provide: EXPENSES_REPOSITORY,
       useClass: ExpensesRepository,
+    },
+    {
+      provide: USERS_REPOSITORY,
+      useClass: UsersRepository,
     },
   ],
   exports: [ExpensesService],

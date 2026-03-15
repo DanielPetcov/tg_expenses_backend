@@ -1,5 +1,5 @@
 import { Conversation } from '@grammyjs/conversations';
-import { CreateExpenseDto } from 'src/modules/Expenses/domain/dto/createExpense.dto';
+import { CreateExpenseDto } from 'src/modules/Expenses/domain/expenses/dto/createExpense.dto';
 
 import { BotContext } from '../types/bot.context';
 
@@ -36,14 +36,18 @@ export async function addConversation(
 
   try {
     const createdExpense = await conversation.external((ctx) =>
-      ctx.expensesService.create(expense),
+      ctx.expensesService.create(expense, ctx.me.id),
     );
 
     if (createdExpense) {
       await ctx.reply('Successfully added the expense.');
     }
   } catch (e) {
-    await ctx.reply('Something went wrong.');
+    if (e instanceof Error) {
+      await ctx.reply(e.message);
+    } else {
+      await ctx.reply('Something went wrong.');
+    }
     console.error(e);
   }
 }
