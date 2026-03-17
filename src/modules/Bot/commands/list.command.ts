@@ -1,8 +1,9 @@
-import { InlineKeyboard } from 'grammy';
 import { BotContext } from '../types/bot.context';
 import { Conversation } from '@grammyjs/conversations';
 import { sortExpenses } from '../helper/sortExpenses';
-import { createListMessage } from '../helper/createListMessage';
+import { ReturnExpenseDto } from 'src/modules/Expenses/domain/expenses/dto/returnExpense.dto';
+import { buildListPage } from '../helper/buildListPage';
+import { clearOldListKeyboard } from '../helper/clearOldListKeyboard';
 
 export async function listConversation(
   conversation: Conversation<BotContext>,
@@ -11,19 +12,10 @@ export async function listConversation(
   const pageSize = 5;
   let currentPage = 0;
 
-  // Safely read and clear old message keyboard
-  await conversation.external(async (ctx) => {
-    if (ctx.session.lastListMessageId && ctx.chat) {
-      await ctx.api
-        .editMessageReplyMarkup(ctx.chat.id, ctx.session.lastListMessageId, {
-          reply_markup: undefined,
-        })
-        .catch(() => {}); // silently ignore if message too old
-    }
-  });
+  await clearOldListKeyboard(conversation);
 
   const expenses = await conversation.external((ctx) =>
-    ctx.expensesService.getAll(ctx.me.id),
+    ctx.expensesService.getAll(ctx.from!.id),
   );
 
   if (expenses.length === 0) {
@@ -33,15 +25,12 @@ export async function listConversation(
 
   sortExpenses(expenses);
 
-  const message = createListMessage(expenses.slice(0, pageSize), 0);
-  const keyboard = buildPaginationKeyboard(0, pageSize, expenses.length);
-
+  const { message, keyboard } = buildListPage(expenses, currentPage, pageSize);
   const sentMessage = await ctx.reply(message, {
-    parse_mode: 'Markdown',
+    parse_mode: 'HTML',
     reply_markup: keyboard,
   });
 
-  // Safely write to session
   await conversation.external((ctx) => {
     ctx.session.lastListMessageId = sentMessage.message_id;
   });
@@ -56,7 +45,9 @@ export async function listConversation(
             .editMessageReplyMarkup(
               sentMessage.chat.id,
               sentMessage.message_id,
-              { reply_markup: undefined },
+              {
+                reply_markup: undefined,
+              },
             )
             .catch(() => {});
           await conversation.halt({ next: true });
@@ -70,54 +61,51 @@ export async function listConversation(
       if ((currentPage + 1) * pageSize < expenses.length) currentPage++;
     } else if (data === 'prev') {
       if (currentPage > 0) currentPage--;
+    } else if (data.startsWith('delete:')) {
+      await handleDeletion(conversation, data, expenses, ctx);
+      const maxPage = Math.max(0, Math.ceil(expenses.length / pageSize) - 1);
+      if (currentPage > maxPage) currentPage = maxPage;
     } else {
       await update.answerCallbackQuery('');
       continue;
     }
 
-    const start = currentPage * pageSize;
-    const newMessage = createListMessage(
-      expenses.slice(start, start + pageSize),
-      currentPage,
-    );
-    const newKeyboard = buildPaginationKeyboard(
+    const { message: newMessage, keyboard: newKeyboard } = buildListPage(
+      expenses,
       currentPage,
       pageSize,
-      expenses.length,
     );
 
     await ctx.api.editMessageText(
       sentMessage.chat.id,
       sentMessage.message_id,
       newMessage,
-      { parse_mode: 'Markdown', reply_markup: newKeyboard },
+      { parse_mode: 'HTML', reply_markup: newKeyboard },
     );
 
     await update.answerCallbackQuery('');
   }
 }
 
-function buildPaginationKeyboard(
-  currentPage: number,
-  pageSize: number,
-  totalItems: number,
+async function handleDeletion(
+  conversation: Conversation<BotContext>,
+  data: string,
+  expenses: ReturnExpenseDto[],
+  ctx: BotContext,
 ) {
-  const totalPages = Math.ceil(totalItems / pageSize);
-  const keyboard = new InlineKeyboard();
+  const id = data.split(':')[1];
 
-  if (currentPage > 0) {
-    keyboard.text('⬅️ Prev', 'prev');
-  } else {
-    keyboard.text('⬅️ Prev');
-  }
+  await conversation.external((ctx) =>
+    ctx.expensesService.delete(id, ctx.from!.id),
+  );
 
-  if (currentPage < totalPages - 1) {
-    keyboard.text('Next ➡️', 'next');
-  } else {
-    keyboard.text('Next ➡️');
-  }
+  const updated = await conversation.external((ctx) =>
+    ctx.expensesService.getAll(ctx.from!.id),
+  );
 
-  return keyboard;
+  sortExpenses(updated);
+  expenses.length = 0;
+  expenses.push(...updated);
 }
 
 export async function listCommand(ctx: BotContext) {

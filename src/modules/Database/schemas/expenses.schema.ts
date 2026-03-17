@@ -7,6 +7,7 @@ import {
   text,
   varchar,
   date,
+  boolean,
 } from 'drizzle-orm/pg-core';
 import { usersTable } from './users.schema';
 
@@ -24,5 +25,11 @@ export const expensesTable = pgTable('expenses', {
   category: varchar({ length: 50 }).notNull(),
   source: sourceEnum().notNull(),
   date: date().notNull(), // date of expense,
+
+  currency: varchar({ length: 3 }).default('MDL').notNull(), // future-proofing
+  tags: text().array(), // e.g. ['work', 'recurring']
+  isRecurring: boolean().default(false).notNull(), // rent, subscriptions
+  note: text(), // optional extra context beyond description
+
   createdAt: timestamp().defaultNow().notNull(),
 });

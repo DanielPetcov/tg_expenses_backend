@@ -5,7 +5,14 @@ import { menuKeyboard } from '../keyboards/menuKeyboard';
 export async function startCommand(ctx: BotContext) {
   await ctx.reply('Welcom to the bot');
 
-  const userExists = await ctx.expensesService.userExists(ctx.me.id);
+  const userTelegramAccount = ctx.from;
+  if (!userTelegramAccount)
+    throw new Error('log in first with your telegram account');
+
+  const userExists = await ctx.expensesService.userExists(
+    userTelegramAccount.id,
+  );
+
   if (userExists) {
     ctx.reply('Account exists', {
       reply_markup: menuKeyboard,
@@ -14,8 +21,8 @@ export async function startCommand(ctx: BotContext) {
   }
 
   const user = await ctx.expensesService.registerUser({
-    telegramId: ctx.me.id,
-    username: ctx.me.username,
+    telegramId: userTelegramAccount.id,
+    username: userTelegramAccount.username ?? '',
   });
 
   if (user) {

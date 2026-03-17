@@ -38,7 +38,7 @@ export async function addConversation(
 
   try {
     const createdExpense = await conversation.external((ctx) =>
-      ctx.expensesService.create(expense, ctx.me.id),
+      ctx.expensesService.create(expense, ctx.from!.id),
     );
 
     if (createdExpense) {

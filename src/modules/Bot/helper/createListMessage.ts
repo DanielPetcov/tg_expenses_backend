@@ -19,7 +19,7 @@ export function createListItem(exp: ReturnExpenseDto, index: number): string {
 
   const date = new Date(exp.date).toLocaleDateString();
   const sourceEmoji = getSourceEmoji(exp.source);
-  message += `*${index + 1}. ${exp.category}* ${sourceEmoji}\n`;
+  message += ` *${index + 1}. ${exp.category}* ${sourceEmoji}\n`;
   message += `Amount: *${exp.amount} MDL*\n`;
   message += `Description: _${exp.description}_\n`;
   message += `Date: ${date}\n`;
