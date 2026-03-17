@@ -10,6 +10,7 @@ import { getSingleOrError } from '../../common/getSingleOrError';
 @Injectable()
 export class UsersRepository implements IUsersRepository {
   constructor(private readonly _db: DatabaseService) {}
+
   async registerUser(
     telegramId: number,
     username: string,

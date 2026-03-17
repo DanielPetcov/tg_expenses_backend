@@ -15,6 +15,8 @@ export async function addConversation(
     source: 'manual',
   };
 
+  await ctx.reply('Enter the details, or write *cancel* to cancel.');
+
   expense.amount = await askForAmount(conversation, ctx);
   expense.description = await askForText(conversation, ctx, 'Description:');
   expense.category = await askForText(conversation, ctx, 'Category:');
@@ -64,6 +66,12 @@ async function askForText(
   await ctx.reply(question);
 
   const update = await conversation.waitFor('message:text');
+
+  if (update.message.text.trim() === 'cancel') {
+    ctx.reply('Canceled.');
+    await conversation.halt();
+  }
+
   return update.message.text.trim();
 }
 
@@ -75,6 +83,12 @@ async function askForAmount(
     await ctx.reply('Amount spent (MDL):');
 
     const update = await conversation.waitFor('message:text');
+
+    if (update.message.text.trim() === 'cancel') {
+      ctx.reply('Canceled.');
+      await conversation.halt();
+    }
+
     const amount = Number(update.message.text);
 
     if (!isNaN(amount) && amount > 0) {

@@ -72,6 +72,12 @@ export class ExpensesService {
     return deletedExpense;
   }
 
+  async userExists(telegramId: number) {
+    const userExists = await this.usersRepo.findByTelegramId(telegramId);
+
+    return userExists;
+  }
+
   async registerUser(dto: RegisterUserDto) {
     const user = await this.usersRepo.registerUser(
       dto.telegramId,
