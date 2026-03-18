@@ -95,6 +95,29 @@ export class BotService implements OnApplicationBootstrap {
       );
     });
 
+    this.bot.callbackQuery(/^support:(\d+)$/, async (ctx) => {
+      const amount = parseInt(ctx.match[1]);
+      await ctx.answerCallbackQuery('');
+      await ctx.replyWithInvoice(
+        '⭐ Support the Developer',
+        'Thank you for supporting this bot!',
+        `support_${amount}`,
+        'XTR',
+        [{ label: 'Support', amount }],
+      );
+    });
+
+    this.bot.on('pre_checkout_query', (ctx) =>
+      ctx.answerPreCheckoutQuery(true),
+    );
+
+    this.bot.on('message:successful_payment', async (ctx) => {
+      const stars = ctx.message.successful_payment.total_amount;
+      await ctx.reply(
+        `🙏 Thank you for your ${stars} ⭐ stars! It means a lot and keeps the bot alive.`,
+      );
+    });
+
     await this.bot.start();
   }
 }
