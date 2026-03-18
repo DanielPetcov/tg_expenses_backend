@@ -18,7 +18,8 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "push": "cross-env NODE_ENV=development drizzle-kit push"
+    "push:dev": "cross-env NODE_ENV=development drizzle-kit push",
+    "push:prod": "cross-env NODE_ENV=production drizzle-kit push"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.79.0",
