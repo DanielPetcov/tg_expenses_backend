@@ -84,6 +84,17 @@ export class BotService implements OnApplicationBootstrap {
       await ctx.conversation.enter('addConversation');
     });
 
+    this.bot.on('pre_checkout_query', (ctx) =>
+      ctx.answerPreCheckoutQuery(true),
+    );
+
+    this.bot.on('message:successful_payment', async (ctx) => {
+      const stars = ctx.message.successful_payment.total_amount;
+      await ctx.reply(
+        `🙏 Thank you so much for your ${stars} stars! It means a lot.`,
+      );
+    });
+
     await this.bot.start();
   }
 }

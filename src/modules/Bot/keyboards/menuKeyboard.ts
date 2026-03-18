@@ -6,17 +6,20 @@ import {
   listCommand,
   summaryCommand,
 } from '../commands';
+import { supportCommand } from '../commands/support.command';
 
 export const keyboardLabels = [
   '➕ Add Expense',
   '📄 List Expenses',
   '📊 Summary',
   '❓ Help',
+  '⭐ Support',
 ];
 
 export const menuKeyboard = Keyboard.from([
   [Keyboard.text('➕ Add Expense'), Keyboard.text('📄 List Expenses')],
   [Keyboard.text('📊 Summary'), Keyboard.text('❓ Help')],
+  [Keyboard.text('⭐ Support')],
 ])
   .persistent()
   .resized();
@@ -37,6 +40,9 @@ export async function handleMenuKeyboardInputs(ctx: BotContext) {
       break;
     case '❓ Help':
       await helpCommand(ctx);
+      break;
+    case '⭐ Support':
+      await supportCommand(ctx);
       break;
   }
 }
