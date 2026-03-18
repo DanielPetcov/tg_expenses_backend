@@ -1,5 +1,5 @@
 import { Conversation } from '@grammyjs/conversations';
-import { BotContext } from '../types/bot.context';
+import { BotContext } from '../../types/bot.context';
 
 export async function clearOldListKeyboard(
   conversation: Conversation<BotContext>,

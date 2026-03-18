@@ -1,1 +1,1 @@
-export * from './photo.handler';
+export * from './receipt.handler';

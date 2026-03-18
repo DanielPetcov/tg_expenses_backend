@@ -1,12 +1,16 @@
+import { ExpenseCategory } from '../expenseCategory';
 import { ExpenseSources } from '../expenseSources';
 
 export interface ReturnExpenseDto {
   id: string;
   userId: string;
-  date: string;
   amount: number;
-  description: string;
-  category: string;
+  merchant: string | null;
+  description: string | null;
+  category: ExpenseCategory;
   source: ExpenseSources;
-  createdAt: Date | null;
+  date: string;
+  currency: string;
+  tags: string[] | null;
+  isRecurring: boolean;
 }

@@ -1,5 +1,5 @@
 import { ReturnExpenseDto } from 'src/modules/Expenses/domain/expenses/dto/returnExpense.dto';
-import { buildPaginationKeyboard } from './buildPaginationKeyboard';
+import { buildPaginationKeyboard } from '../keyboard/buildPaginationKeyboard';
 import { createListMessage } from './createListMessage';
 
 export function buildListPage(

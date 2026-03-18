@@ -1,5 +1,4 @@
 import { timestamp } from 'drizzle-orm/pg-core';
-import { pgEnum } from 'drizzle-orm/pg-core';
 import {
   pgTable,
   uuid,
@@ -10,8 +9,8 @@ import {
   boolean,
 } from 'drizzle-orm/pg-core';
 import { usersTable } from './users.schema';
-
-export const sourceEnum = pgEnum('expenseSources', ['manual', 'photo']);
+import { categoryEnum } from '../enum/category.enum';
+import { sourceEnum } from '../enum/source.enum';
 
 export const expensesTable = pgTable('expenses', {
   id: uuid().defaultRandom().primaryKey(),
@@ -21,15 +20,15 @@ export const expensesTable = pgTable('expenses', {
     .notNull(),
 
   amount: decimal().notNull(),
-  description: text().notNull(),
-  category: varchar({ length: 50 }).notNull(),
+  merchant: varchar({ length: 100 }), // from receipt, optional for manual
+  description: text(), // optional, extra context
+  category: categoryEnum().notNull(), // now enum, not free text
   source: sourceEnum().notNull(),
-  date: date().notNull(), // date of expense,
+  date: date().notNull(),
 
-  currency: varchar({ length: 3 }).default('MDL').notNull(), // future-proofing
-  tags: text().array(), // e.g. ['work', 'recurring']
-  isRecurring: boolean().default(false).notNull(), // rent, subscriptions
-  note: text(), // optional extra context beyond description
+  currency: varchar({ length: 3 }).default('MDL').notNull(),
+  tags: text().array(),
+  isRecurring: boolean().default(false).notNull(),
 
   createdAt: timestamp().defaultNow().notNull(),
 });

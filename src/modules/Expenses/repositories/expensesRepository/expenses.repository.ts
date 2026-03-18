@@ -1,7 +1,6 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, gte, lte } from 'drizzle-orm';
 import { DatabaseService } from '../../../Database/database.service';
 import { expensesTable } from '../../../Database/schemas';
-import { CreateExpenseDto } from '../../domain/expenses/dto/createExpense.dto';
 import { ReturnExpenseDto } from '../../domain/expenses/dto/returnExpense.dto';
 import { ExpenseEntity } from '../../domain/expenses/expenses.entity';
 import { ExpensesMapper } from '../../domain/expenses/expenses.mapper';
@@ -9,10 +8,13 @@ import { IExpensesRepository } from './expenses.repository.interface';
 import { Injectable } from '@nestjs/common';
 import { getSingleOrError } from '../../common/getSingleOrError';
 import { CreateExpenseRepoDto } from '../../domain/expenses/dto/createExpenseRepoDto';
+import { MonthlySummary } from '../../domain/summary/summary.model';
+import { summariesTable } from 'src/modules/Database/schemas/summaries.schema';
 
 @Injectable()
 export class ExpensesRepository implements IExpensesRepository {
   constructor(private readonly _db: DatabaseService) {}
+
   async exists(id: string, userId: string): Promise<boolean> {
     const expense: { id: string }[] = await this._db.db
       .select({ id: expensesTable.id })
@@ -28,6 +30,7 @@ export class ExpensesRepository implements IExpensesRepository {
       .values({
         userId: createDto.userId,
         amount: createDto.amount.toString(),
+        merchant: createDto.merchant,
         description: createDto.description,
         category: createDto.category,
         source: createDto.source,
@@ -76,5 +79,64 @@ export class ExpensesRepository implements IExpensesRepository {
     );
 
     return ExpensesMapper.ReturnDtoFromDrizzle(expense);
+  }
+
+  async getByMonth(userId: string, targetYear: number, targetMonth: number) {
+    const startDate = `${targetYear}-${String(targetMonth).padStart(2, '0')}-01`;
+
+    const lastDay = new Date(targetYear, targetMonth, 0).getDate();
+    const endDate = `${targetYear}-${String(targetMonth).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+    const expenses: ExpenseEntity[] = await this._db.db
+      .select()
+      .from(expensesTable)
+      .where(
+        and(
+          eq(expensesTable.userId, userId),
+          gte(expensesTable.date, startDate),
+          lte(expensesTable.date, endDate),
+        ),
+      );
+
+    return expenses.map((e) => ExpensesMapper.ReturnDtoFromDrizzle(e));
+  }
+
+  async upsertSummary(
+    userId: string,
+    targetYear: number,
+    targetMonth: number,
+    summary: MonthlySummary,
+  ): Promise<void> {
+    await this._db.db
+      .insert(summariesTable)
+      .values({
+        userId,
+        year: targetYear,
+        month: targetMonth,
+        totalAmount: summary.totalAmount.toString(),
+        transactionCount: summary.transactionCount,
+        dailyAverage: summary.dailyAverage.toString(),
+        recurringTotal: summary.recurringTotal.toString(),
+        categoryBreakdown: summary.categoryBreakdown,
+        topMerchants: summary.topMerchants,
+        largestExpense: summary.largestExpense,
+      })
+      .onConflictDoUpdate({
+        target: [
+          summariesTable.userId,
+          summariesTable.year,
+          summariesTable.month,
+        ],
+        set: {
+          totalAmount: summary.totalAmount.toString(),
+          transactionCount: summary.transactionCount,
+          dailyAverage: summary.dailyAverage.toString(),
+          recurringTotal: summary.recurringTotal.toString(),
+          categoryBreakdown: summary.categoryBreakdown,
+          topMerchants: summary.topMerchants,
+          largestExpense: summary.largestExpense,
+          updatedAt: new Date(),
+        },
+      });
   }
 }

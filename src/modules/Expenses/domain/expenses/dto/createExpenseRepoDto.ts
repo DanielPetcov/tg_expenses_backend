@@ -1,10 +1,12 @@
+import { ExpenseCategory } from '../expenseCategory';
 import { ExpenseSources } from '../expenseSources';
 
 export interface CreateExpenseRepoDto {
   userId: string;
   amount: number;
-  description: string;
-  category: string;
+  merchant: string | undefined;
+  description: string | undefined;
+  category: ExpenseCategory;
   source: ExpenseSources;
   date: string;
 }

@@ -11,7 +11,10 @@ import { ScheduleModule } from '@nestjs/schedule';
     ExpensesModule,
     DataBaseModule,
     ScheduleModule.forRoot(),
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({
+      envFilePath: `.env.${process.env.NODE_ENV}`,
+      isGlobal: true,
+    }),
   ],
 })
 export class AppModule {}

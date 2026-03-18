@@ -9,11 +9,14 @@ export class ExpensesMapper {
       id: drizzleEntity.id,
       userId: drizzleEntity.userId,
       amount: Number(drizzleEntity.amount),
+      merchant: drizzleEntity.merchant,
       description: drizzleEntity.description,
       category: drizzleEntity.category,
-      createdAt: new Date(drizzleEntity.createdAt),
-      date: drizzleEntity.date,
       source: drizzleEntity.source,
+      date: drizzleEntity.date,
+      currency: drizzleEntity.currency,
+      tags: drizzleEntity.tags,
+      isRecurring: drizzleEntity.isRecurring,
     };
   }
 
@@ -24,6 +27,7 @@ export class ExpensesMapper {
     return {
       userId: userId,
       amount: dto.amount,
+      merchant: dto.merchant,
       category: dto.category,
       date: dto.date,
       description: dto.description,

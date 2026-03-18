@@ -1,19 +1,28 @@
 import { Keyboard } from 'grammy';
 import { BotContext } from '../types/bot.context';
-import { addCommand, helpCommand, listCommand } from '../commands';
+import {
+  addCommand,
+  helpCommand,
+  listCommand,
+  summaryCommand,
+} from '../commands';
 
-export const keyboardLabels = ['➕ Add Expense', '📄 List Expenses', '❓ Help'];
+export const keyboardLabels = [
+  '➕ Add Expense',
+  '📄 List Expenses',
+  '📊 Summary',
+  '❓ Help',
+];
 
-export const menuKeyboard = Keyboard.from(
-  keyboardLabels.map((l) => [Keyboard.text(l)]),
-)
+export const menuKeyboard = Keyboard.from([
+  [Keyboard.text('➕ Add Expense'), Keyboard.text('📄 List Expenses')],
+  [Keyboard.text('📊 Summary'), Keyboard.text('❓ Help')],
+])
   .persistent()
   .resized();
 
 export async function handleMenuKeyboardInputs(ctx: BotContext) {
   const text = ctx.msg?.text;
-  console.log(text);
-
   if (!text) return;
 
   switch (text) {
@@ -22,6 +31,9 @@ export async function handleMenuKeyboardInputs(ctx: BotContext) {
       break;
     case '📄 List Expenses':
       await listCommand(ctx);
+      break;
+    case '📊 Summary':
+      await summaryCommand(ctx);
       break;
     case '❓ Help':
       await helpCommand(ctx);

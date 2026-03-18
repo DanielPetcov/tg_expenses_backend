@@ -1,14 +1,14 @@
 import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 
 import { Bot, session } from 'grammy';
+import { hydrateFiles } from '@grammyjs/files';
 import {
   startCommand,
   addCommand,
-  addConversation,
   helpCommand,
   commandsList,
   listCommand,
-  listConversation,
+  summaryCommand,
 } from './commands';
 import { conversations, createConversation } from '@grammyjs/conversations';
 import { ExpensesService } from '../Expenses/expenses.service';
@@ -21,9 +21,17 @@ import {
   keyboardLabels,
 } from './keyboards/menuKeyboard';
 
+import { receiptHandler } from './handlers';
+import { AiService } from '../Ai/ai.service';
+import { addConversation } from './conversations/add.conversation';
+import { listConversation } from './conversations/list.conversation';
+
 @Injectable()
 export class BotService implements OnApplicationBootstrap {
-  constructor(private readonly expensesService: ExpensesService) {}
+  constructor(
+    private readonly expensesService: ExpensesService,
+    private readonly aiService: AiService,
+  ) {}
 
   private readonly bot = new Bot<BotContext>(process.env.BOT_TOKEN!);
 
@@ -32,8 +40,11 @@ export class BotService implements OnApplicationBootstrap {
       console.error('Bot error: ', err.message);
     });
 
+    this.bot.api.config.use(hydrateFiles(this.bot.token));
+
     this.bot.use((ctx, next) => {
       ctx.expensesService = this.expensesService;
+      ctx.aiService = this.aiService;
       return next();
     });
 
@@ -46,6 +57,7 @@ export class BotService implements OnApplicationBootstrap {
     this.bot.command('add', addCommand);
     this.bot.command('list', listCommand);
     this.bot.command('help', helpCommand);
+    this.bot.command('summary', summaryCommand);
 
     await this.bot.api.setMyCommands(commandsList);
 
@@ -57,6 +69,20 @@ export class BotService implements OnApplicationBootstrap {
     });
 
     this.bot.on('message:text', handleMenuKeyboardInputs);
+
+    this.bot.on('message:photo', receiptHandler);
+
+    this.bot.callbackQuery('receipt:discard', async (ctx) => {
+      ctx.session.pendingReceipt = undefined;
+      await ctx.editMessageReplyMarkup({ reply_markup: undefined });
+      await ctx.answerCallbackQuery('🗑️ Discarded');
+    });
+
+    this.bot.callbackQuery('receipt:confirm', async (ctx) => {
+      await ctx.answerCallbackQuery('');
+      await ctx.editMessageReplyMarkup({ reply_markup: undefined });
+      await ctx.conversation.enter('addConversation');
+    });
 
     await this.bot.start();
   }
