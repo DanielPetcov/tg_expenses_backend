@@ -14,9 +14,12 @@ export async function startCommand(ctx: BotContext) {
   );
 
   if (userExists) {
-    ctx.reply('Account exists', {
+    await ctx.reply('Account exists', {
       reply_markup: menuKeyboard,
     });
+    await ctx.reply(
+      "WARNING! To use the AI feature for scanning receipts, just send a photo with the receipt!\n Don't press /add command then send photo.\n /add command is just for manual entries.",
+    );
     return;
   }
 
@@ -26,10 +29,16 @@ export async function startCommand(ctx: BotContext) {
   });
 
   if (user) {
-    ctx.reply("Account succesfully created. Let's start your experience", {
-      reply_markup: menuKeyboard,
-    });
+    await ctx.reply(
+      "Account succesfully created. Let's start your experience",
+      {
+        reply_markup: menuKeyboard,
+      },
+    );
+    await ctx.reply(
+      "WARNING! To use the AI feature for scanning receipts, just send a photo with the receipt!\n Don't press /add command then send photo.\n /add command is just for manual entries.",
+    );
   } else {
-    ctx.reply('Something went wrong. /start again');
+    await ctx.reply('Something went wrong. /start again');
   }
 }
