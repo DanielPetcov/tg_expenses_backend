@@ -32,6 +32,8 @@ export class ExpensesMapper {
       date: dto.date,
       description: dto.description,
       source: dto.source,
+      currency: dto.currency,
+      isRecurring: dto.isRecurring,
     };
   }
 }

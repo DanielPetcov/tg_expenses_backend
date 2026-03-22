@@ -43,17 +43,13 @@ export async function addConversation(
   }
 
   // manual flow
-  await ctx.reply('Enter the details, or write *cancel* to cancel.', {
+  await ctx.reply('Enter the details, or cancel.', {
     parse_mode: 'Markdown',
   });
 
   const expense: CreateExpenseDto = {
     amount: await askForAmount(conversation, ctx),
-    description: await askForText(
-      conversation,
-      ctx,
-      '📝 Description (optional, - to skip):',
-    ),
+    description: await askForText(conversation, ctx, '📝 Description:', true),
     category: await askForCategory(conversation, ctx),
     date: new Date().toISOString().split('T')[0],
     source: 'manual',

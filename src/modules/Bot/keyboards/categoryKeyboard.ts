@@ -1,3 +1,4 @@
+// categoryKeyboard.ts
 import { InlineKeyboard } from 'grammy';
 import {
   ExpenseCategories,
@@ -11,6 +12,9 @@ export function buildCategoryKeyboard(): InlineKeyboard {
     keyboard.text(`${categoryEmojis[cat]} ${cat}`, `category:${cat}`);
     if (index % 2 !== 0) keyboard.row();
   });
+
+  // cancel on its own row at the bottom
+  keyboard.row().text('❌ Cancel', 'action:cancel');
 
   return keyboard;
 }

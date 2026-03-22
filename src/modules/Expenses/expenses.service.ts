@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import { IExpensesRepository } from './repositories/expensesRepository/expenses.repository.interface';
 import { CreateExpenseDto } from './domain/expenses/dto/createExpense.dto';
 import { ReturnExpenseDto } from './domain/expenses/dto/returnExpense.dto';
@@ -12,6 +13,8 @@ import {
   MonthlySummary,
   TopMerchant,
 } from './domain/summary/summary.model';
+import { CreateRecurringExpenseDto } from './domain/expenses/dto/createRecurringExpenseDto';
+import { ReturnRecurringExpenseDto } from './domain/expenses/dto/returnRecurringExpenseDto';
 
 @Injectable()
 export class ExpensesService {
@@ -22,74 +25,48 @@ export class ExpensesService {
     private readonly usersRepo: IUsersRepository,
   ) {}
 
+  private async resolveUser(telegramId: number) {
+    const user = await this.usersRepo.findByTelegramId(telegramId);
+    if (!user) throw new Error('User could not be found. /start the bot.');
+    return user;
+  }
+
   async create(
     dto: CreateExpenseDto,
     telegramId: number,
   ): Promise<ReturnExpenseDto> {
-    const user = await this.usersRepo.findByTelegramId(telegramId);
-
-    if (!user) {
-      throw new Error('User could not be found. /start the bot.');
-    }
-
-    const createdExpense = await this.expensesRepo.create(
+    const user = await this.resolveUser(telegramId);
+    return this.expensesRepo.create(
       ExpensesMapper.CreateExpenseRepoFromCreateExpense(dto, user.id),
     );
-    return createdExpense;
   }
 
   async getAll(telegramId: number): Promise<ReturnExpenseDto[]> {
-    const user = await this.usersRepo.findByTelegramId(telegramId);
-
-    if (!user) {
-      throw new Error('User could not be found. /start the bot.');
-    }
-
-    const expenses = await this.expensesRepo.getAll(user.id);
-    return expenses;
+    const user = await this.resolveUser(telegramId);
+    return this.expensesRepo.getAll(user.id);
   }
 
   async getById(
     id: string,
     telegramId: number,
   ): Promise<ReturnExpenseDto | null> {
-    const user = await this.usersRepo.findByTelegramId(telegramId);
-
-    if (!user) {
-      throw new Error('User could not be found. /start the bot.');
-    }
-
-    const expense = await this.expensesRepo.getById(id, user.id);
-    return expense;
+    const user = await this.resolveUser(telegramId);
+    return this.expensesRepo.getById(id, user.id);
   }
 
   async delete(id: string, telegramId: number): Promise<ReturnExpenseDto> {
-    const user = await this.usersRepo.findByTelegramId(telegramId);
-
-    if (!user) {
-      throw new Error('User could not be found. /start the bot.');
-    }
-
-    const existsExpense = await this.expensesRepo.exists(id, user.id);
-    if (!existsExpense) throw new Error('Expense was not found');
-
-    const deletedExpense = await this.expensesRepo.delete(id, user.id);
-    return deletedExpense;
+    const user = await this.resolveUser(telegramId);
+    const exists = await this.expensesRepo.exists(id, user.id);
+    if (!exists) throw new Error('Expense was not found');
+    return this.expensesRepo.delete(id, user.id);
   }
 
   async userExists(telegramId: number) {
-    const userExists = await this.usersRepo.findByTelegramId(telegramId);
-
-    return userExists;
+    return this.usersRepo.findByTelegramId(telegramId);
   }
 
   async registerUser(dto: RegisterUserDto) {
-    const user = await this.usersRepo.registerUser(
-      dto.telegramId,
-      dto.username,
-    );
-
-    return user;
+    return this.usersRepo.registerUser(dto.telegramId, dto.username);
   }
 
   async summary(
@@ -97,28 +74,18 @@ export class ExpensesService {
     year?: number,
     month?: number,
   ): Promise<MonthlySummary | null> {
-    const user = await this.usersRepo.findByTelegramId(telegramId);
-
-    if (!user) {
-      throw new Error('User could not be found. /start the bot.');
-    }
-
-    const userId = user.id;
-
+    const user = await this.resolveUser(telegramId);
     const now = new Date();
     const targetYear = year ?? now.getFullYear();
     const targetMonth = month ?? now.getMonth() + 1;
 
-    // fetch all expenses for that month
     const expenses = await this.expensesRepo.getByMonth(
-      userId,
+      user.id,
       targetYear,
       targetMonth,
     );
-
     if (expenses.length === 0) return null;
 
-    // calculate category breakdown
     const categoryBreakdown: CategoryBreakdown = {};
     for (const exp of expenses) {
       const amount = Number(exp.amount);
@@ -126,12 +93,10 @@ export class ExpensesService {
         (categoryBreakdown[exp.category] ?? 0) + amount;
     }
 
-    // top category
     const topCategory = Object.entries(categoryBreakdown).sort(
       ([, a], [, b]) => b - a,
     )[0];
 
-    // top merchants (only photo/merchant expenses)
     const merchantMap: Record<string, number> = {};
     for (const exp of expenses) {
       if (exp.merchant) {
@@ -139,12 +104,12 @@ export class ExpensesService {
           (merchantMap[exp.merchant] ?? 0) + Number(exp.amount);
       }
     }
+
     const topMerchants: TopMerchant[] = Object.entries(merchantMap)
       .map(([name, total]) => ({ name, total }))
       .sort((a, b) => b.total - a.total)
       .slice(0, 3);
 
-    // largest single expense
     const largest = expenses.reduce((max, exp) =>
       Number(exp.amount) > Number(max.amount) ? exp : max,
     );
@@ -158,14 +123,13 @@ export class ExpensesService {
       .reduce((sum, exp) => sum + Number(exp.amount), 0);
 
     const daysInMonth = new Date(targetYear, targetMonth, 0).getDate();
-    const dailyAverage = totalAmount / daysInMonth;
 
     const summary: MonthlySummary = {
       year: targetYear,
       month: targetMonth,
       totalAmount,
       transactionCount: expenses.length,
-      dailyAverage,
+      dailyAverage: totalAmount / daysInMonth,
       categoryBreakdown,
       topMerchants,
       largestExpense: {
@@ -179,14 +143,42 @@ export class ExpensesService {
       topCategoryAmount: topCategory[1],
     };
 
-    // save or update snapshot
     await this.expensesRepo.upsertSummary(
-      userId,
+      user.id,
       targetYear,
       targetMonth,
       summary,
     );
-
     return summary;
+  }
+
+  async createRecurring(
+    dto: CreateRecurringExpenseDto,
+    telegramId: number,
+  ): Promise<void> {
+    const user = await this.resolveUser(telegramId);
+    await this.expensesRepo.createRecurring(dto, user.id);
+  }
+
+  async getRecurring(telegramId: number): Promise<ReturnRecurringExpenseDto[]> {
+    const user = await this.resolveUser(telegramId);
+    return this.expensesRepo.getRecurring(user.id);
+  }
+
+  async toggleRecurring(id: string, telegramId: number): Promise<void> {
+    const user = await this.resolveUser(telegramId);
+    await this.expensesRepo.toggleRecurring(id, user.id);
+  }
+
+  async deleteRecurring(id: string, telegramId: number): Promise<void> {
+    const user = await this.resolveUser(telegramId);
+    await this.expensesRepo.deleteRecurring(id, user.id);
+  }
+
+  @Cron('0 9 * * *') // every day at 9:00 AM
+  async generateRecurringExpenses(): Promise<void> {
+    console.log('Running recurring expenses generation...');
+    await this.expensesRepo.generateRecurringExpenses();
+    console.log('Recurring expenses generation complete.');
   }
 }

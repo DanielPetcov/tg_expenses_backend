@@ -9,6 +9,9 @@ import {
   commandsList,
   listCommand,
   summaryCommand,
+  addRecurringCommand,
+  listRecurringCommand,
+  recurringMenuCommand,
 } from './commands';
 import { conversations, createConversation } from '@grammyjs/conversations';
 import { ExpensesService } from '../Expenses/expenses.service';
@@ -25,6 +28,8 @@ import { receiptHandler } from './handlers';
 import { AiService } from '../Ai/ai.service';
 import { addConversation } from './conversations/add.conversation';
 import { listConversation } from './conversations/list.conversation';
+import { addRecurringConversation } from './conversations/addRecurring.conversation';
+import { manageRecurringConversation } from './conversations/manageRecurring.conversation';
 
 @Injectable()
 export class BotService implements OnApplicationBootstrap {
@@ -52,23 +57,28 @@ export class BotService implements OnApplicationBootstrap {
     this.bot.use(conversations());
     this.bot.use(createConversation(addConversation));
     this.bot.use(createConversation(listConversation));
+    this.bot.use(createConversation(addRecurringConversation));
+    this.bot.use(createConversation(manageRecurringConversation));
 
     this.bot.command('start', startCommand);
     this.bot.command('add', addCommand);
+    this.bot.command('add_recurring', addRecurringCommand);
     this.bot.command('list', listCommand);
+    this.bot.command('list_recurring', listRecurringCommand);
+    this.bot.command('recurring', recurringMenuCommand);
     this.bot.command('help', helpCommand);
     this.bot.command('summary', summaryCommand);
 
     await this.bot.api.setMyCommands(commandsList);
 
-    this.bot.on('message:text', async (ctx, next) => {
-      if (keyboardLabels.includes(ctx.msg.text)) {
+    this.bot.use(async (ctx, next) => {
+      if (ctx.message?.text && keyboardLabels.includes(ctx.message.text)) {
         await ctx.conversation.exitAll();
+        await handleMenuKeyboardInputs(ctx);
+        return; // don't call next, we handled it
       }
       await next();
     });
-
-    this.bot.on('message:text', handleMenuKeyboardInputs);
 
     this.bot.on('message:photo', receiptHandler);
 
@@ -117,6 +127,32 @@ export class BotService implements OnApplicationBootstrap {
         `🙏 Thank you for your ${stars} ⭐ stars! It means a lot and keeps the bot alive.`,
       );
     });
+
+    // recurring expensive
+    this.bot.callbackQuery('recurring:add', async (ctx) => {
+      await ctx.answerCallbackQuery('');
+      await ctx.editMessageReplyMarkup({ reply_markup: undefined });
+      await ctx.conversation.enter('addRecurringConversation');
+    });
+
+    this.bot.callbackQuery('recurring:list', async (ctx) => {
+      await ctx.answerCallbackQuery('');
+      await ctx.editMessageReplyMarkup({ reply_markup: undefined });
+      await listRecurringCommand(ctx);
+    });
+
+    this.bot.callbackQuery('recurring:manage', async (ctx) => {
+      await ctx.answerCallbackQuery('');
+      await ctx.editMessageReplyMarkup({ reply_markup: undefined });
+      await ctx.conversation.enter('manageRecurringConversation');
+    });
+
+    this.bot.callbackQuery('recurring:cancel', async (ctx) => {
+      await ctx.reply('Canceled.');
+      await ctx.conversation.exitAll();
+    });
+
+    this.bot.callbackQuery('noop', (ctx) => ctx.answerCallbackQuery(''));
 
     await this.bot.start();
   }

@@ -2,6 +2,7 @@ import { Keyboard } from 'grammy';
 import { BotContext } from '../types/bot.context';
 import {
   addCommand,
+  recurringMenuCommand,
   helpCommand,
   listCommand,
   summaryCommand,
@@ -10,6 +11,7 @@ import { supportCommand } from '../commands/support.command';
 
 export const keyboardLabels = [
   '➕ Add Expense',
+  '🔁 Recurring',
   '📄 List Expenses',
   '📊 Summary',
   '❓ Help',
@@ -17,9 +19,9 @@ export const keyboardLabels = [
 ];
 
 export const menuKeyboard = Keyboard.from([
-  [Keyboard.text('➕ Add Expense'), Keyboard.text('📄 List Expenses')],
-  [Keyboard.text('📊 Summary'), Keyboard.text('❓ Help')],
-  [Keyboard.text('⭐ Support')],
+  [Keyboard.text('➕ Add Expense'), Keyboard.text('🔁 Recurring')],
+  [Keyboard.text('📊 Summary'), Keyboard.text('📄 List Expenses')],
+  [Keyboard.text('❓ Help'), Keyboard.text('⭐ Support')],
 ])
   .persistent()
   .resized();
@@ -31,6 +33,9 @@ export async function handleMenuKeyboardInputs(ctx: BotContext) {
   switch (text) {
     case '➕ Add Expense':
       await addCommand(ctx);
+      break;
+    case '🔁 Recurring':
+      await recurringMenuCommand(ctx);
       break;
     case '📄 List Expenses':
       await listCommand(ctx);

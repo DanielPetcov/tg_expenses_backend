@@ -9,4 +9,6 @@ export interface CreateExpenseRepoDto {
   category: ExpenseCategory;
   source: ExpenseSources;
   date: string;
+  currency: string | undefined;
+  isRecurring: boolean | undefined;
 }
